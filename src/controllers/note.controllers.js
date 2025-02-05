@@ -77,7 +77,9 @@ const getNotes = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Unauthorized");
   }
   try {
-    const notes = await Note.find({ userId: { $eq: req.user._id } });
+    const notes = await Note.find({ userId: { $eq: req.user._id } }).sort({
+      createdAt: -1,
+    });
     return res.json(new ApiResponse(200, notes));
   } catch (err) {
     throw new ApiError(400, err);
