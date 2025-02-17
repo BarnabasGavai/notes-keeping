@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit"; // Import rate limiter
 import { ApiError } from "./utils/ApiError.js";
+import path from "path";
 
 const app = express();
 
@@ -40,6 +41,10 @@ app.use("/api/v1/labels", labelRouter);
 
 // Serve static files (AFTER API routes)
 app.use(express.static("dist"));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.resolve("dist", "index.html"));
+});
 
 // Error Handling Middleware (Always last)
 app.use((err, req, res, next) => {

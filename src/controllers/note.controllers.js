@@ -6,12 +6,24 @@ import { Label } from "../models/label.models.js";
 
 const createNote = asyncHandler(async (req, res) => {
   try {
-    const { subject, content, labelIdString, backgroundColor, fontColor } =
-      req.body;
+    const { subject, content, labelId, backgroundColor, fontColor } = req.body;
     const userId = req.user._id;
-    const label = labelIdString
-      ? await Label.findById(labelIdString)
-      : undefined;
+    let label;
+
+    if (labelId) {
+      try {
+        label = await Label.findOne({ _id: labelId, userId: req.user._id });
+        if (!label) {
+          label = undefined;
+        }
+      } catch (error) {
+        label = undefined;
+        throw new ApiError(404, "Label does not exist", ["Bad request"]);
+      }
+    } else {
+      label = undefined;
+    }
+
     if (!req.user) {
       throw new ApiError(403, "User invalid", ["User details not available"]);
     }
@@ -22,7 +34,7 @@ const createNote = asyncHandler(async (req, res) => {
       backgroundColor,
       fontColor,
       userId,
-      labelId: label ? label : undefined,
+      labelId: label,
     });
 
     return res.json(new ApiResponse(200, myNote, "Successfully Created"));
@@ -63,9 +75,13 @@ const updateNote = asyncHandler(async (req, res) => {
     throw new ApiError("500", "Unauthenticated");
   }
   try {
-    const updatedNote = await Note.findByIdAndUpdate(noteId, updates, {
-      new: true,
-    });
+    const updatedNote = await Note.findByIdAndUpdate(
+      noteId,
+      { ...updates, labelId: updates.labelId || null },
+      {
+        new: true,
+      }
+    );
     return res.json(new ApiResponse(200, updatedNote, "Updated Success"));
   } catch (error) {
     throw new ApiError(500, error);
@@ -77,7 +93,7 @@ const getNotes = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Unauthorized");
   }
   try {
-    const notes = await Note.find({ userId: { $eq: req.user._id } }).sort({
+    const notes = await Note.find({ userId: req.user._id }).sort({
       createdAt: -1,
     });
     return res.json(new ApiResponse(200, notes));
